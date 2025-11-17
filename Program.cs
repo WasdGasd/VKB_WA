@@ -1,24 +1,45 @@
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using VKBot.Web.Services;
-using VKBot.Web.Models;
+using VKB_WA.Services; // BotHostedService, CommandCacheService, CommandExecutor
 
-var builder = Host.CreateDefaultBuilder(args)
-    .ConfigureServices((context, services) =>
-    {
-        services.AddHttpClient();
-        services.Configure<VkSettings>(context.Configuration.GetSection("Vk"));
-        services.AddSingleton<ErrorLogger>();
-        services.AddHostedService<BotService>();
-    })
-    .ConfigureLogging(logging =>
-    {
-        logging.ClearProviders();
-        logging.AddConsole();
-        logging.AddDebug();
-        logging.SetMinimumLevel(LogLevel.Information);
-    });
+var builder = WebApplication.CreateBuilder(args);
 
-var host = builder.Build();
-await host.RunAsync();
+// ------------------ Сервисы ------------------
+
+// HttpClient для внешних запросов
+builder.Services.AddHttpClient();
+
+// Фоновый сервис бота
+builder.Services.AddSingleton<BotHostedService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<BotHostedService>());
+
+// Сервисы для админ-панели
+builder.Services.AddSingleton<CommandCacheService>();
+builder.Services.AddSingleton<CommandExecutor>();
+
+// Контроллеры WebAPI
+builder.Services.AddControllers();
+
+// Swagger для тестирования API
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// ------------------ Построение приложения ------------------
+
+var app = builder.Build();
+
+// Middleware
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseRouting();
+app.UseAuthorization();
+
+// Маршрутизация контроллеров
+app.MapControllers();
+
+await app.RunAsync();
