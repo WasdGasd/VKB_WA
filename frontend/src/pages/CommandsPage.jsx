@@ -1,5 +1,6 @@
 import React from "react";
-import CommandList from "../components/CommandList";
+
+import { CommandList } from "../components/CommandList"
 
 export default function CommandsPage() {
     return (

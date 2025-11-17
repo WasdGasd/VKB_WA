@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
+п»їimport React, { useEffect, useState } from "react";
 
-export default function CommandList() {
+export const CommandList = () => {
     const [commands, setCommands] = useState([]);
 
     useEffect(() => {
-        fetch("http://localhost:5000/api/commands") // URL твоего API
+        fetch("http://localhost:5000/api/commands") // URL С‚РІРѕРµРіРѕ API
             .then((res) => res.json())
             .then((data) => setCommands(data))
             .catch((err) => console.error(err));
@@ -13,12 +13,12 @@ export default function CommandList() {
     return (
         <div>
             {commands.length === 0 ? (
-                <p>Команды не найдены</p>
+                <p>РљРѕРјР°РЅРґС‹ РЅРµ РЅР°Р№РґРµРЅС‹</p>
             ) : (
                 <ul>
                     {commands.map((cmd) => (
                         <li key={cmd.id}>
-                            {cmd.name} — {cmd.actionType} — {cmd.actionData}
+                            {cmd.name} пїЅ {cmd.actionType} пїЅ {cmd.actionData}
                         </li>
                     ))}
                 </ul>
