@@ -1,17 +1,11 @@
-import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Dashboard from "./pages/Dashboard";
-import CommandsPage from "./pages/CommandsPage";
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import './index.css';
+import App from './App';  // Импортируем App компонент
 
-function App() {
-    return (
-        <Router>
-            <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/commands" element={<CommandsPage />} />
-            </Routes>
-        </Router>
-    );
-}
-
-export default App;
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+    <React.StrictMode>
+        <App />  {/* Рендерим App компонент */}
+    </React.StrictMode>
+);
