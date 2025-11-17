@@ -22,15 +22,27 @@ export default function CommandForm({ command, onSave }) {
 
     return (
         <form onSubmit={handleSubmit}>
-            <input placeholder="Name" value={name} onChange={e => setName(e.target.value)} required />
+            <input
+                placeholder="Название команды"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                required
+            />
             <select value={actionType} onChange={e => setActionType(e.target.value)}>
-                <option value="SendText">SendText</option>
-                <option value="RunMethod">RunMethod</option>
-                <option value="CallHttp">CallHttp</option>
-                <option value="RunScript">RunScript</option>
+                <option value="SendText">Отправить текст</option>
+                <option value="RunMethod">Запустить метод</option>
+                <option value="CallHttp">Вызвать HTTP</option>
+                <option value="RunScript">Запустить скрипт</option>
             </select>
-            <input placeholder="Action Data" value={actionData} onChange={e => setActionData(e.target.value)} required />
-            <button type="submit">Save</button>
+            <input
+                placeholder="Данные для действия"
+                value={actionData}
+                onChange={e => setActionData(e.target.value)}
+                required
+            />
+            <button type="submit">
+                {command ? 'Обновить' : 'Сохранить'}
+            </button>
         </form>
     );
 }
