@@ -8,7 +8,7 @@ export default function Dashboard() {
             <nav>
                 <Link to="/commands"> оманды</Link>
             </nav>
-            <p>—татус бота и действи€ можно будет добавить здесь</p>
+            <p>«десь можно будет отображать статус бота и действи€</p>
         </div>
     );
 }
