@@ -1,10 +1,10 @@
-﻿import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 export const CommandList = () => {
     const [commands, setCommands] = useState([]);
 
     useEffect(() => {
-        fetch("http://localhost:5000/api/commands") // URL твоего API
+        fetch("http://localhost:5000/api/commands")
             .then((res) => res.json())
             .then((data) => setCommands(data))
             .catch((err) => console.error(err));
@@ -18,7 +18,7 @@ export const CommandList = () => {
                 <ul>
                     {commands.map((cmd) => (
                         <li key={cmd.id}>
-                            {cmd.name} � {cmd.actionType} � {cmd.actionData}
+                            {cmd.name} - {cmd.actionType} - {cmd.actionData}
                         </li>
                     ))}
                 </ul>
