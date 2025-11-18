@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+п»їusing Microsoft.AspNetCore.Mvc;
 using VKB_WA.Services;
 using VKB_WA.Models;
 
@@ -34,7 +34,7 @@ namespace VKB_WA.Controllers
         [HttpPost("reload")]
         public IActionResult Reload()
         {
-            _bot.ReloadCommands(); // убрал параметр _cache
+            _bot.ReloadCommands(); // СѓР±СЂР°Р» РїР°СЂР°РјРµС‚СЂ _cache
             return Ok();
         }
 
@@ -48,7 +48,7 @@ namespace VKB_WA.Controllers
         [HttpGet("stats")]
         public IActionResult GetStats()
         {
-            // Временная заглушка для статистики
+            // Р’СЂРµРјРµРЅРЅР°СЏ Р·Р°РіР»СѓС€РєР° РґР»СЏ СЃС‚Р°С‚РёСЃС‚РёРєРё
             var stats = new BotStats
             {
                 TotalUsers = 1250,

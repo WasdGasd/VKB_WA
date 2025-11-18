@@ -9,7 +9,7 @@ using VKBot.Web.Models;
 using System.Linq;
 using System.Diagnostics;
 
-namespace VKBot.Web.Services
+namespace VKB_WA.Services
 {
     public class BotService : BackgroundService
     {
@@ -20,6 +20,11 @@ namespace VKBot.Web.Services
         private readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
 
         private readonly ConcurrentDictionary<long, (string date, string session)> _userSelectedData = new();
+
+        private readonly ConcurrentDictionary<long, DateTime> _userLastActivity = new();
+        private int _totalMessagesProcessed = 0;
+        private readonly Dictionary<string, int> _commandUsage = new();
+        private readonly DateTime _startTime = DateTime.Now;
 
         public BotService(ILogger<BotService> log, IHttpClientFactory http, IOptions<VkSettings> vkOptions, ErrorLogger errors)
         {
@@ -33,20 +38,20 @@ namespace VKBot.Web.Services
         {
             if (string.IsNullOrEmpty(_vk.AccessToken))
             {
-                _log.LogError("Vk:AccessToken is not configured. Set it in appsettings.json or environment.");
+                _log.LogError("Токен VK не настроен. Установите в appsettings.json или переменных окружения.");
                 return;
             }
 
             if (string.IsNullOrEmpty(_vk.GroupId))
             {
-                _log.LogWarning("Vk:GroupId not configured. LongPoll may fail.");
+                _log.LogWarning("GroupId VK не настроен. LongPoll может не работать.");
             }
 
             var client = _http.CreateClient();
 
             try
             {
-                _log.LogInformation("Getting LongPoll server...");
+                _log.LogInformation("Получение LongPoll сервера...");
 
                 var serverResp = await client.GetFromJsonAsync<LongPollServerResponse>(
                     $"https://api.vk.com/method/groups.getLongPollServer?group_id={_vk.GroupId}&access_token={_vk.AccessToken}&v={_vk.ApiVersion}",
@@ -54,7 +59,7 @@ namespace VKBot.Web.Services
 
                 if (serverResp?.Response == null)
                 {
-                    _log.LogError("Failed to get LongPoll server response.");
+                    _log.LogError("Не удалось получить ответ от LongPoll сервера.");
                     return;
                 }
 
@@ -62,7 +67,7 @@ namespace VKBot.Web.Services
                 string key = serverResp.Response.Key;
                 string ts = serverResp.Response.Ts;
 
-                _log.LogInformation("LongPoll initialized. Listening for events...");
+                _log.LogInformation("LongPoll инициализирован. Ожидание событий...");
 
                 while (!stoppingToken.IsCancellationRequested)
                 {
@@ -76,7 +81,7 @@ namespace VKBot.Web.Services
 
                         if (poll.Failed.HasValue && poll.Failed.Value != 0)
                         {
-                            _log.LogWarning("LongPoll failed ({Failed}). Refreshing ts...", poll.Failed.Value);
+                            _log.LogWarning("LongPoll ошибка ({Failed}). Refreshing ts...", poll.Failed.Value);
                             var serverRespRefresh = await client.GetFromJsonAsync<LongPollServerResponse>(
                                 $"https://api.vk.com/method/groups.getLongPollServer?group_id={_vk.GroupId}&access_token={_vk.AccessToken}&v={_vk.ApiVersion}",
                                 _jsonOptions, stoppingToken);
@@ -100,7 +105,7 @@ namespace VKBot.Web.Services
                     catch (TaskCanceledException) { break; }
                     catch (Exception ex)
                     {
-                        _log.LogError(ex, "LongPoll loop error");
+                        _log.LogError(ex, "Ошибка цикла LongPoll");
                         await _errors.LogErrorAsync(ex, "CRITICAL", additional: new { Component = "MainLoop" });
                         await Task.Delay(3000, stoppingToken);
                     }
@@ -108,7 +113,7 @@ namespace VKBot.Web.Services
             }
             catch (Exception ex)
             {
-                _log.LogCritical(ex, "Bot initialization failed");
+                _log.LogCritical(ex, "Ошибка инициализации бота");
                 await _errors.LogErrorAsync(ex, "FATAL", additional: new { Component = "Initialization" });
             }
         }
@@ -143,7 +148,21 @@ namespace VKBot.Web.Services
             var msg = message.Text ?? string.Empty;
             var userId = message.FromId;
 
-            _log.LogInformation("Message from {user}: {text}", userId, msg);
+
+            // Сбор статистики
+            Interlocked.Increment(ref _totalMessagesProcessed);
+            _userLastActivity[userId] = DateTime.Now;
+
+            var command = GetCommandFromMessage(msg);
+            lock (_commandUsage)
+            {
+                if (_commandUsage.ContainsKey(command))
+                    _commandUsage[command]++;
+                else
+                    _commandUsage[command] = 1;
+            }
+
+            _log.LogInformation("Сообщение от {user}: {text}", userId, msg);
 
             string reply = string.Empty;
             string? keyboard = null;
@@ -287,12 +306,12 @@ namespace VKBot.Web.Services
                 var response = await client.PostAsync("https://api.vk.com/method/messages.send", content);
                 if (!response.IsSuccessStatusCode)
                 {
-                    _log.LogWarning("Failed to send message to user {UserId}. Status: {StatusCode}", userId, response.StatusCode);
+                    _log.LogWarning("Не удалось отправить сообщение пользователю {UserId}. Статус: {StatusCode}", userId, response.StatusCode);
                 }
             }
             catch (Exception ex)
             {
-                _log.LogError(ex, "Error sending message to user {UserId}", userId);
+                _log.LogError(ex, "Ошибка отправки сообщения пользователю {UserId}", userId);
                 await _errors.LogErrorAsync(ex, "ERROR", userId, additional: new { Action = "SendMessage" });
             }
         }
@@ -428,18 +447,18 @@ namespace VKBot.Web.Services
             try
             {
                 var sessionsUrl = $"https://apigateway.nordciti.ru/v1/aqua/getSessionsAqua?date={date}";
-                _log.LogInformation("Requesting sessions from: {Url}", sessionsUrl);
+                _log.LogInformation("Запрос сеансов с: {Url}", sessionsUrl);
 
                 var sessionsResponse = await client.GetAsync(sessionsUrl);
 
                 if (!sessionsResponse.IsSuccessStatusCode)
                 {
-                    _log.LogWarning("Failed to get sessions. Status: {StatusCode}", sessionsResponse.StatusCode);
+                    _log.LogWarning("Не удалось получить сеансы. Статус: {StatusCode}", sessionsResponse.StatusCode);
                     return ($"⚠️ Ошибка при загрузке сеансов на {date}", TicketsDateKeyboard());
                 }
 
                 var sessionsJson = await sessionsResponse.Content.ReadAsStringAsync();
-                _log.LogInformation("Raw sessions response: {Json}", sessionsJson);
+                _log.LogInformation("Сырой ответ сеансов: {Json}", sessionsJson);
 
                 // Пробуем разные варианты парсинга
                 try
@@ -492,15 +511,15 @@ namespace VKBot.Web.Services
                 }
                 catch (JsonException ex)
                 {
-                    _log.LogError(ex, "Failed to parse sessions JSON");
+                    _log.LogError(ex, "Не удалось распарсить JSON сеансов");
                 }
 
-                _log.LogWarning("No sessions found in response. JSON: {Json}", sessionsJson);
+                _log.LogWarning("Сеансы не найдены в ответе. JSON: {Json}", sessionsJson);
                 return ($"😔 На {date} нет доступных сеансов.", TicketsDateKeyboard());
             }
             catch (Exception ex)
             {
-                _log.LogError(ex, "Error in GetSessionsForDateAsync for date {Date}", date);
+                _log.LogError(ex, "Ошибка в GetSessionsForDateAsync для даты {Date}", date);
                 await _errors.LogErrorAsync(ex, "ERROR", additional: new { Component = "GetSessionsForDate", Date = date });
                 return ($"❌ Ошибка при получении сеансов", TicketsDateKeyboard());
             }
@@ -521,7 +540,7 @@ namespace VKBot.Web.Services
                     string sessionTime = GetSessionTime(session);
                     if (string.IsNullOrEmpty(sessionTime))
                     {
-                        _log.LogWarning("Could not get session time from element: {Element}", session);
+                        _log.LogWarning("Не удалось получить время сеанса из элемента: {Element}", session);
                         continue;
                     }
 
@@ -557,7 +576,7 @@ namespace VKBot.Web.Services
                 }
                 catch (Exception ex)
                 {
-                    _log.LogWarning(ex, "Error processing session element: {Element}", session);
+                    _log.LogWarning(ex, "Ошибка обработки элемента сеанса: {Element}", session);
                     continue;
                 }
             }
@@ -669,12 +688,12 @@ namespace VKBot.Web.Services
 
                 if (!tariffsResponse.IsSuccessStatusCode)
                 {
-                    _log.LogWarning("Failed to get tariffs. Status: {StatusCode}", tariffsResponse.StatusCode);
+                    _log.LogWarning("Не удалось получить тарифы. Статус: {StatusCode}", tariffsResponse.StatusCode);
                     return ("⚠️ Ошибка при загрузке тарифов", BackKeyboard());
                 }
 
                 var tariffsJson = await tariffsResponse.Content.ReadAsStringAsync();
-                _log.LogInformation("[DEBUG] Raw tariffs data: {TariffsJson}", tariffsJson);
+                _log.LogInformation("[ОТЛАДКА] Сырые данные тарифов: {TariffsJson}", tariffsJson);
 
                 var tariffsData = JsonSerializer.Deserialize<JsonElement>(tariffsJson, _jsonOptions);
 
@@ -791,7 +810,7 @@ namespace VKBot.Web.Services
             }
             catch (Exception ex)
             {
-                _log.LogError(ex, "Error getting tariffs for date {Date}, session {Session}, category {Category}", date, sessionTime, category);
+                _log.LogError(ex, "Ошибка получения тарифов для даты {Date}, сеанс {Session}, категория {Category}", date, sessionTime, category);
                 await _errors.LogErrorAsync(ex, "ERROR", additional: new { Component = "GetFormattedTariffs", Date = date, Session = sessionTime, Category = category });
                 return ("❌ Ошибка при получении тарифов. Попробуйте позже 😔", BackKeyboard());
             }
@@ -840,14 +859,14 @@ namespace VKBot.Web.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    _log.LogWarning("Failed to get park load data. Status: {StatusCode}", response.StatusCode);
+                    _log.LogWarning("Не удалось получить данные о загруженности парка. Статус: {StatusCode}", response.StatusCode);
                     return "❌ Не удалось получить данные о загруженности. Попробуйте позже 😔";
                 }
 
                 var data = await response.Content.ReadFromJsonAsync<ParkLoadResponse>(_jsonOptions);
                 if (data == null)
                 {
-                    _log.LogWarning("Failed to parse park load response");
+                    _log.LogWarning("Не удалось обработать ответ о загруженности парка");
                     return "❌ Не удалось обработать данные о загруженности 😔";
                 }
 
@@ -877,7 +896,7 @@ namespace VKBot.Web.Services
             }
             catch (Exception ex)
             {
-                _log.LogError(ex, "Error getting park load data");
+                _log.LogError(ex, "Ошибка получения данных о загруженности парка");
                 await _errors.LogErrorAsync(ex, "ERROR", additional: new { Component = "GetParkLoad" });
                 return "❌ Не удалось получить информацию о загруженности. Попробуйте позже 😔";
             }
@@ -930,6 +949,37 @@ namespace VKBot.Web.Services
                     "⏰ Часы работы call-центра:\n" +
                     "🕙 09:00 - 22:00";
 
+        // ↓↓↓ МЕТОДЫ ДЛЯ СТАТИСТИКИ ↓↓↓
+
+        // Метод для определения команды из сообщения
+        private string GetCommandFromMessage(string message)
+        {
+            if (string.IsNullOrEmpty(message)) return "unknown";
+
+            var lowerMsg = message.ToLower();
+            return lowerMsg switch
+            {
+                "начать" or "/start" or "🚀 начать" => "start",
+                "информация" or "ℹ️ информация" => "info",
+                "билеты" or "🎟 купить билеты" => "tickets",
+                "загруженность" or "📊 загруженность" => "load",
+                "время работы" or "⏰ время работы" => "hours",
+                "контакты" or "📞 контакты" => "contacts",
+                "🔙 назад" or "назад" => "back",
+                "🔙 к сеансам" => "back_to_sessions",
+                "🔙 в начало" => "back_to_start",
+                _ when lowerMsg.StartsWith("📅") => "select_date",
+                _ when lowerMsg.StartsWith("⏰") => "select_session",
+                _ when IsTicketCategoryMessage(message) => "select_ticket_category",
+                _ => "other"
+            };
+        }
+
+        // Методы для получения статистики
+        public int GetOnlineUsersCount() => _userLastActivity.Count(u => u.Value > DateTime.Now.AddMinutes(-5)); public DateTime GetStartTime() => _startTime;
+        public Dictionary<string, int> GetCommandUsage() => new Dictionary<string, int>(_commandUsage);
+        public int GetActiveUsersToday() => _userLastActivity.Count(u => u.Value.Date == DateTime.Today);
+
         // --- models ---
         public class ParkLoadResponse { public int Count { get; set; } public int Load { get; set; } }
         public class SessionItem
@@ -938,6 +988,65 @@ namespace VKBot.Web.Services
             public string EndTime { get; set; } = "";
             public int PlacesFree { get; set; }
             public int PlacesTotal { get; set; }
-        }
+        
     }
-}
+
+
+        public object GetLiveStats()
+        {
+            var uptime = DateTime.Now - _startTime;
+
+            return new
+            {
+                UsersOnline = GetOnlineUsersCount(), // ← ВОТ ТАК ДОЛЖНО БЫТЬ!
+                MessagesProcessed = _totalMessagesProcessed,
+                ActiveToday = GetActiveUsersToday(),
+                Uptime = $"{uptime.Hours}h {uptime.Minutes}m",
+                StartTime = _startTime
+            };
+        }
+
+        public object GetCommandStats()
+        {
+            // ТОЛЬКО реальные данные
+            var popularCommands = _commandUsage
+                .OrderByDescending(x => x.Value)
+                .Take(5)
+                .Select(x => new { Name = x.Key, UsageCount = x.Value })
+                .ToList();
+
+            return new
+            {
+                TotalExecuted = _totalMessagesProcessed,
+                DailyUsage = GenerateRealDailyUsage(), // Реальная активность
+                PopularCommands = popularCommands
+            };
+        }
+
+        // Вспомогательный метод для daily usage (можно оставить заглушку)
+        private List<object> GenerateRealDailyUsage()
+        {
+            var dailyStats = new Dictionary<string, int>();
+            var dayNames = new[] { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
+
+            // Собираем статистику за последние 7 дней
+            for (int i = 6; i >= 0; i--)
+            {
+                var date = DateTime.Now.AddDays(-i);
+                var dayName = dayNames[(int)date.DayOfWeek];
+                var activityCount = _userLastActivity.Count(u => u.Value.Date == date.Date);
+
+                dailyStats[dayName] = activityCount;
+            }
+
+            var result = new List<object>();
+            foreach (var day in dayNames)
+            {
+                dailyStats.TryGetValue(day, out var count);
+                result.Add(new { Date = day, Count = count });
+            }
+
+            return result;
+        }
+
+    } }

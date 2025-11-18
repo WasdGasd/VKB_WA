@@ -1,31 +1,50 @@
-using Microsoft.AspNetCore.Builder;
+п»їusing Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using VKB_WA.Services; // BotHostedService, CommandCacheService, CommandExecutor
+using VKB_WA.Services;
+using VKBot.Web.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ------------------ Сервисы ------------------
+builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
 
-// HttpClient для внешних запросов
+builder.Services.Configure<VkSettings>(builder.Configuration.GetSection("Vk"));
+
+// ------------------ РЎРµСЂРІРёСЃС‹ ------------------
+
+// CORS РґР»СЏ frontend
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.WithOrigins("http://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
+// HttpClient РґР»СЏ РІРЅРµС€РЅРёС… Р·Р°РїСЂРѕСЃРѕРІ
 builder.Services.AddHttpClient();
 
-// Фоновый сервис бота
-builder.Services.AddSingleton<BotHostedService>();
-builder.Services.AddHostedService(sp => sp.GetRequiredService<BotHostedService>());
+builder.Services.AddSingleton<ErrorLogger>();
 
-// Сервисы для админ-панели
+// РЎРµСЂРІРёСЃС‹ Р±РѕС‚Р°
+builder.Services.AddSingleton<BotService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<BotService>());
+
+// РЎРµСЂРІРёСЃС‹ РґР»СЏ Р°РґРјРёРЅ-РїР°РЅРµР»Рё
 builder.Services.AddSingleton<CommandCacheService>();
 builder.Services.AddSingleton<CommandExecutor>();
 
-// Контроллеры WebAPI
+// РљРѕРЅС‚СЂРѕР»Р»РµСЂС‹ WebAPI
 builder.Services.AddControllers();
 
-// Swagger для тестирования API
+// Swagger РґР»СЏ С‚РµСЃС‚РёСЂРѕРІР°РЅРёСЏ API
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// ------------------ Построение приложения ------------------
+// ------------------ РџРѕСЃС‚СЂРѕРµРЅРёРµ РїСЂРёР»РѕР¶РµРЅРёСЏ ------------------
 
 var app = builder.Build();
 
@@ -37,9 +56,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseRouting();
+app.UseCors();
 app.UseAuthorization();
 
-// Маршрутизация контроллеров
+// РњР°СЂС€СЂСѓС‚РёР·Р°С†РёСЏ РєРѕРЅС‚СЂРѕР»Р»РµСЂРѕРІ
 app.MapControllers();
 
 await app.RunAsync();

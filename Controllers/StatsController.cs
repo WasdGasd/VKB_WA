@@ -1,6 +1,7 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using VKB_WA.Models;
 using System.Diagnostics;
+using VKB_WA.Services;
 
 namespace VKB_WA.Controllers
 {
@@ -8,18 +9,19 @@ namespace VKB_WA.Controllers
     [Route("api/[controller]")]
     public class StatsController : ControllerBase
     {
+        private readonly BotService _botService;
         private static readonly Random _random = new Random();
+
+        public StatsController(BotService botService)
+        {
+            _botService = botService;
+        }
 
         [HttpGet("commands")]
         public IActionResult GetCommandStats()
         {
-            var stats = new CommandStats
-            {
-                TotalExecuted = 5678,
-                DailyUsage = GenerateDailyUsage(),
-                PopularCommands = GeneratePopularCommands()
-            };
-
+            // РЕАЛЬНЫЕ ДАННЫЕ ИЗ BOT SERVICE
+            var stats = _botService.GetCommandStats();
             return Ok(stats);
         }
 
@@ -28,8 +30,8 @@ namespace VKB_WA.Controllers
         {
             var stats = new UserStats
             {
-                TotalUsers = 1250,
-                ActiveToday = 67,
+                TotalUsers = _botService.GetOnlineUsersCount(),
+                ActiveToday = _botService.GetActiveUsersToday(),
                 HourlyActivity = GenerateHourlyActivity()
             };
 
@@ -45,10 +47,27 @@ namespace VKB_WA.Controllers
                 ResponseTime = "124ms",
                 MemoryUsage = $"{Math.Round((double)process.WorkingSet64 / 1024 / 1024, 1)} MB",
                 CpuLoad = "23%",
-                Uptime = "24h 30m"
+                Uptime = $"{DateTime.Now - _botService.GetStartTime():h\'h \'m\'m\'}"
             };
 
             return Ok(stats);
+        }
+
+        [HttpGet("live")]
+        public IActionResult GetLiveStats()
+        {
+            // РЕАЛЬНЫЕ ДАННЫЕ ИЗ BOT SERVICE
+            var stats = _botService.GetLiveStats();
+            return Ok(stats);
+        }
+
+        [HttpPost("simulate")]
+        public IActionResult SimulateActivity()
+        {
+            return Ok(new
+            {
+                Message = "Симуляция отключена. Используйте реального бота для статистики"
+            });
         }
 
         private List<CommandUsage> GenerateDailyUsage()
@@ -66,17 +85,6 @@ namespace VKB_WA.Controllers
             }
 
             return usage;
-        }
-
-        private List<PopularCommand> GeneratePopularCommands()
-        {
-            return new List<PopularCommand>
-            {
-                new PopularCommand { Name = "start", UsageCount = 1567 },
-                new PopularCommand { Name = "������", UsageCount = 1420 },
-                new PopularCommand { Name = "�������������", UsageCount = 980 },
-                new PopularCommand { Name = "����������", UsageCount = 850 }
-            };
         }
 
         private List<UserActivity> GenerateHourlyActivity()

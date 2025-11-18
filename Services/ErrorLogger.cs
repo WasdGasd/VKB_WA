@@ -3,8 +3,8 @@ using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using VKBot.Web.Models;
 
-namespace VKBot.Web.Services
-{
+namespace VKB_WA.Services
+{ 
     public class ErrorLogger
     {
         private readonly ILogger<ErrorLogger> _logger;

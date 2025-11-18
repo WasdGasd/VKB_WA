@@ -1,6 +1,6 @@
-const API_BASE = "https://localhost:5001/api";
+п»їconst API_BASE = "http://localhost:5000/api";
 
-// Аутентификация
+// РђСѓС‚РµРЅС‚РёС„РёРєР°С†РёСЏ
 export async function login(username, password) {
     const res = await fetch(`${API_BASE}/auth/login`, {
         method: "POST",
@@ -24,7 +24,7 @@ export async function login(username, password) {
     }
 }
 
-// Команды
+// РљРѕРјР°РЅРґС‹
 export async function fetchCommands() {
     const res = await fetch(`${API_BASE}/commands`, { credentials: "include" });
     return res.json();
@@ -57,7 +57,7 @@ export async function deleteCommand(id) {
     });
 }
 
-// Управление ботом
+// РЈРїСЂР°РІР»РµРЅРёРµ Р±РѕС‚РѕРј
 export async function botControl(action) {
     return fetch(`${API_BASE}/bot/${action}`, {
         method: "POST",
@@ -77,32 +77,7 @@ export async function restartBot() {
     return botControl('restart');
 }
 
-// Статистика и логи
-export async function getStats() {
-    const res = await fetch(`${API_BASE}/bot/stats`, {
-        credentials: "include"
-    });
-    if (!res.ok) throw new Error('Failed to fetch stats');
-    return res.json();
-}
-
-export async function getBotStatus() {
-    const res = await fetch(`${API_BASE}/bot/status`, {
-        credentials: "include"
-    });
-    if (!res.ok) throw new Error('Failed to fetch bot status');
-    return res.json();
-}
-
-export async function getLogs() {
-    const res = await fetch(`${API_BASE}/logs`, {
-        credentials: "include"
-    });
-    if (!res.ok) throw new Error('Failed to fetch logs');
-    return res.json();
-}
-
-// Получение статистики команд
+// РџРѕР»СѓС‡РµРЅРёРµ СЃС‚Р°С‚РёСЃС‚РёРєРё РєРѕРјР°РЅРґ
 export async function getCommandStats() {
     const res = await fetch(`${API_BASE}/stats/commands`, {
         credentials: "include"
@@ -111,7 +86,7 @@ export async function getCommandStats() {
     return res.json();
 }
 
-// Получение информации о пользователях
+// РџРѕР»СѓС‡РµРЅРёРµ РёРЅС„РѕСЂРјР°С†РёРё Рѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏС…
 export async function getUserStats() {
     const res = await fetch(`${API_BASE}/stats/users`, {
         credentials: "include"
@@ -120,11 +95,37 @@ export async function getUserStats() {
     return res.json();
 }
 
-// Получение информации о системе
+// РџРѕР»СѓС‡РµРЅРёРµ РёРЅС„РѕСЂРјР°С†РёРё Рѕ СЃРёСЃС‚РµРјРµ
 export async function getSystemStats() {
     const res = await fetch(`${API_BASE}/stats/system`, {
         credentials: "include"
     });
     if (!res.ok) throw new Error('Failed to fetch system stats');
+    return res.json();
+}
+
+// в†“в†“в†“ Р”РћР‘РђР’Р¬ Р­РўР РњР•РўРћР”Р« Р’ РљРћРќР•Р¦ Р¤РђР™Р›Рђ в†“в†“в†“
+
+// РЎС‚Р°С‚РёСЃС‚РёРєР° Р±РѕС‚Р°
+export async function getStats() {
+    const res = await fetch(`${API_BASE}/stats/live`);
+    if (!res.ok) throw new Error('Failed to fetch stats');
+    return res.json();
+}
+
+// РЎС‚Р°С‚СѓСЃ Р±РѕС‚Р° (РІСЂРµРјРµРЅРЅР°СЏ Р·Р°РіР»СѓС€РєР°)
+export async function getBotStatus() {
+    return { status: "online" }; // РІСЂРµРјРµРЅРЅР°СЏ Р·Р°РіР»СѓС€РєР°
+}
+
+// Р›РѕРіРё (РІСЂРµРјРµРЅРЅР°СЏ Р·Р°РіР»СѓС€РєР°)
+export async function getLogs() {
+    return []; // РІСЂРµРјРµРЅРЅР°СЏ Р·Р°РіР»СѓС€РєР°
+}
+
+// Live СЃС‚Р°С‚РёСЃС‚РёРєР°
+export async function getLiveStats() {
+    const res = await fetch(`${API_BASE}/stats/live`);
+    if (!res.ok) throw new Error('Failed to fetch live stats');
     return res.json();
 }
