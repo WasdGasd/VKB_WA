@@ -1,15 +1,24 @@
 ﻿import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 const Sidebar = () => {
     const location = useLocation();
+    const { user, logout } = useAuth();
+    const navigate = useNavigate();
+    const { isDark, toggleTheme } = useTheme();
 
     const menuItems = [
         { path: '/', label: 'Dashboard', icon: '📊' },
         { path: '/commands', label: 'Commands', icon: '⚙️' },
-        { path: '/logs', label: 'Logs', icon: '📝' },
-        { path: '/settings', label: 'Settings', icon: '🔧' }
+        { path: '/logs', label: 'Logs', icon: '📝' }
     ];
+
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    };
 
     return (
         <div style={{
@@ -20,7 +29,9 @@ const Sidebar = () => {
             position: 'fixed',
             left: 0,
             top: 0,
-            padding: '20px 0'
+            padding: '20px 0',
+            display: 'flex',
+            flexDirection: 'column'
         }}>
             <div style={{
                 padding: '0 20px 20px',
@@ -29,11 +40,11 @@ const Sidebar = () => {
             }}>
                 <h2 style={{ margin: 0, color: '#ecf0f1' }}>VK Bot Admin</h2>
                 <p style={{ margin: '5px 0 0', color: '#bdc3c7', fontSize: '12px' }}>
-                    Control Panel
+                    Welcome, {user?.username}
                 </p>
             </div>
 
-            <nav>
+            <nav style={{ flex: 1 }}>
                 {menuItems.map(item => (
                     <Link
                         key={item.path}
@@ -55,6 +66,49 @@ const Sidebar = () => {
                     </Link>
                 ))}
             </nav>
+
+            <div style={{ padding: '20px', borderTop: '1px solid #34495e' }}>
+                <button
+                    onClick={toggleTheme}
+                    style={{
+                        width: '100%',
+                        background: 'transparent',
+                        color: '#bdc3c7',
+                        border: '1px solid #34495e',
+                        padding: '10px',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginBottom: '10px'
+                    }}
+                >
+                    <span style={{ marginRight: '8px' }}>
+                        {isDark ? '☀️' : '🌙'}
+                    </span>
+                    {isDark ? 'Light Mode' : 'Dark Mode'}
+                </button>
+
+                <button
+                    onClick={handleLogout}
+                    style={{
+                        width: '100%',
+                        background: 'transparent',
+                        color: '#bdc3c7',
+                        border: '1px solid #34495e',
+                        padding: '10px',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}
+                >
+                    <span style={{ marginRight: '8px' }}>🚪</span>
+                    Logout
+                </button>
+            </div>
         </div>
     );
 };

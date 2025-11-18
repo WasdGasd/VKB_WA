@@ -7,6 +7,7 @@ using System.Text.Json.Serialization;
 using System.Net.Http.Json;
 using VKBot.Web.Models;
 using System.Linq;
+using System.Diagnostics;
 
 namespace VKBot.Web.Services
 {
@@ -217,29 +218,35 @@ namespace VKBot.Web.Services
                             reply = await GetParkLoadAsync(client);
                             break;
                         default:
-                            if (msg.StartsWith("📅"))
+                            if (msg.StartsWith("📅") || msg.StartsWith("⏰"))
                             {
-                                var date = msg.Replace("📅", "").Trim();
-                                var (m, k) = await GetSessionsForDateAsync(client, date);
-                                reply = m; keyboard = k;
-                                _userSelectedData.AddOrUpdate(userId, (date, ""), (key, old) => (date, ""));
+                                if (msg.StartsWith("📅"))
+                                {
+                                    var date = msg.Replace("📅", "").Trim();
+                                    var (m, k) = await GetSessionsForDateAsync(client, date);
+                                    reply = m; keyboard = k;
+                                    _userSelectedData.AddOrUpdate(userId, (date, ""), (key, old) => (date, ""));
+                                }
+                                else if (msg.StartsWith("⏰"))
+                                {
+                                    var session = msg.Replace("⏰", "").Trim();
+                                    if (!_userSelectedData.TryGetValue(userId, out var cur))
+                                    {
+                                        reply = "Сначала выберите дату 📅";
+                                        keyboard = TicketsDateKeyboard();
+                                    }
+                                    else
+                                    {
+                                        _userSelectedData[userId] = (cur.date, session);
+                                        reply = $"🎟 *Сеанс: {session} ({cur.date})*\n\nВыберите категорию билетов:";
+                                        keyboard = TicketCategoryKeyboard();
+                                    }
+                                }
                             }
-                            else if (msg.StartsWith("⏰"))
+                            else
                             {
-                                var session = msg.Replace("⏰", "").Trim();
-                                if (!_userSelectedData.TryGetValue(userId, out var cur))
-                                {
-                                    reply = "Сначала выберите дату 📅";
-                                    keyboard = TicketsDateKeyboard();
-                                }
-                                else
-                                {
-                                    _userSelectedData[userId] = (cur.date, session);
-                                    reply = $"🎟 *Сеанс: {session} ({cur.date})*\n\nВыберите категорию билетов:";
-                                    keyboard = TicketCategoryKeyboard();
-                                }
+                                reply = "Я вас не понял, попробуйте еще раз 😅";
                             }
-                            else { reply = "Я вас не понял, попробуйте еще раз 😅"; }
                             break;
                     }
                 }
@@ -389,7 +396,7 @@ namespace VKBot.Web.Services
         });
 
         private string GenerateWelcomeText() => string.Join("\n", new[] {
-            "🌊 ДОБРО ПОЛОЖАЛОВАТЬ В ЦЕНТР YES!\n\n" +
+            "🌊 ДОБРО ПОЛОЖАЛОВАТЬ В ЦЕНТр YES!\n\n" +
 "Я ваш персональный помощник для организации незабываемого отдыха! 🎯\n\n" +
 
 "🎟 УМНАЯ ПОКУПКА БИЛЕТОВ\n" +

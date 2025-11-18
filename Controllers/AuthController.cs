@@ -13,7 +13,13 @@ namespace VKB_WA.Controllers
             if (model.Username == "admin" && model.Password == "admin")
             {
                 HttpContext.Response.Cookies.Append("auth", "true");
-                return Ok();
+
+                // Возвращаем JSON с токеном как ожидает фронтенд
+                return Ok(new
+                {
+                    token = "demo-token",
+                    username = model.Username
+                });
             }
             return Unauthorized();
         }
