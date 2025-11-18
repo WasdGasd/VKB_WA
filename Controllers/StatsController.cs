@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using VKB_WA.Models;
+using System.Diagnostics;
 
 namespace VKB_WA.Controllers
 {
@@ -38,10 +39,11 @@ namespace VKB_WA.Controllers
         [HttpGet("system")]
         public IActionResult GetSystemStats()
         {
+            var process = Process.GetCurrentProcess();
             var stats = new SystemStats
             {
                 ResponseTime = "124ms",
-                MemoryUsage = "45.2 MB",
+                MemoryUsage = $"{Math.Round((double)process.WorkingSet64 / 1024 / 1024, 1)} MB",
                 CpuLoad = "23%",
                 Uptime = "24h 30m"
             };
@@ -49,7 +51,6 @@ namespace VKB_WA.Controllers
             return Ok(stats);
         }
 
-        // Вспомогательные методы для генерации тестовых данных
         private List<CommandUsage> GenerateDailyUsage()
         {
             var days = new[] { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };

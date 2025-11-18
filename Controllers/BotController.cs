@@ -34,16 +34,14 @@ namespace VKB_WA.Controllers
         [HttpPost("reload")]
         public IActionResult Reload()
         {
-            _bot.ReloadCommands(_cache);
+            _bot.ReloadCommands(); // убрал параметр _cache
             return Ok();
         }
 
-        // Ќовые методы дл€ статистики
         [HttpGet("status")]
         public IActionResult GetStatus()
         {
-            // ¬ременна€ заглушка - всегда возвращаем online
-            var status = "online";
+            var status = _bot.IsRunning ? "online" : "offline";
             return Ok(new { status });
         }
 

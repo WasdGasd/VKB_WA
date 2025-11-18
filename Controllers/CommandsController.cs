@@ -23,7 +23,7 @@ namespace VKB_WA.Controllers
         }
 
         [HttpPut("{id}")]
-        public BotCommand Update(int id, [FromBody] BotCommand cmd)
+        public IActionResult Update(int id, [FromBody] BotCommand cmd)
         {
             var c = _commands.Find(x => x.Id == id);
             if (c != null)
@@ -31,8 +31,9 @@ namespace VKB_WA.Controllers
                 c.Name = cmd.Name;
                 c.ActionType = cmd.ActionType;
                 c.ActionData = cmd.ActionData;
+                return Ok(c);
             }
-            return c;
+            return NotFound();
         }
 
         [HttpDelete("{id}")]

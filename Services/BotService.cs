@@ -396,7 +396,7 @@ namespace VKBot.Web.Services
         });
 
         private string GenerateWelcomeText() => string.Join("\n", new[] {
-            "🌊 ДОБРО ПОЛОЖАЛОВАТЬ В ЦЕНТр YES!\n\n" +
+            "🌊 ДОБРО ПОЛОЖАЛОВАТЬ В ЦЕНТР YES!\n\n" +
 "Я ваш персональный помощник для организации незабываемого отдыха! 🎯\n\n" +
 
 "🎟 УМНАЯ ПОКУПКА БИЛЕТОВ\n" +

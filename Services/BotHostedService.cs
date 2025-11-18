@@ -18,10 +18,31 @@ namespace VKB_WA.Services
             _logger = logger;
         }
 
+        public bool IsRunning => _running;
+
+        public void StartBot()
+        {
+            _running = true;
+            _logger.LogInformation("Bot started.");
+        }
+
+        public void StopBot()
+        {
+            _running = false;
+            _logger.LogInformation("Bot stopped.");
+        }
+
+        public void ReloadCommands()
+        {
+            using var scope = _services.CreateScope();
+            var cache = scope.ServiceProvider.GetRequiredService<CommandCacheService>();
+            cache.Reload();
+            _logger.LogInformation("Commands reloaded.");
+        }
+
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _logger.LogInformation("BotHostedService started.");
-            _running = true;
 
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -33,10 +54,8 @@ namespace VKB_WA.Services
                 }
                 await Task.Delay(1000, stoppingToken);
             }
-        }
 
-        public void StartBot() => _running = true;
-        public void StopBot() => _running = false;
-        public void ReloadCommands(CommandCacheService cache) => cache.Reload();
+            _logger.LogInformation("BotHostedService stopped.");
+        }
     }
 }
